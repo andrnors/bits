@@ -92,10 +92,22 @@ from datetime import datetime
 
 #  Initilizes the program, creates the start html
 file_name = 'publication.html'
+
 connection = connect(database="internet_activity.db")
 database = connection.cursor()
 
 date_time_now = "" ## Init as an empty string. Have to do this so the database can write
+
+## Storing the links for the database localy
+## This is to avoid reading the webpage two times
+sportLink = ""
+editionLink =""
+footballLink =""
+europeLink =""
+technologyLink =""
+travelLink =""
+
+
 def init(file):
     # Basic to create HTML page
     file.write("<!DOCTYPE html>\n")
@@ -128,25 +140,69 @@ def find(source, first, last):
 def findNewsArticle(source):
     ''':returns [title, description, link, publicationDate, picture'''
 
+    ## Makes it posible to edit global variables
+    global sportLink
+    global editionLink
+    global footballLink
+    global  travelLink
+    global europeLink
+    global technologyLink
+
+    ## need this to check which of the links I should edit
+    sourceTitle = find(source, "<channel>", "</title>")  ## This will never change. This is the title of the channel. That's why I can use it
+
     item = find(source, "<item>", "</item>")  #  Find the newest news article the RSS feed
 
     title = find(item, "<title>", "</title>")  #  Gets the title
     if "<![CDATA[" in title:  #  If the title contains this it removes it. (This is specific to some of the titles in CNN's RSS feed
         title = find(item, "<title><![CDATA[", "]]></title>")
 
+    link = find(item, "<link>", "</link>")  # Finds the link to the article
+
+
     description = find(item, "<description>", "</description>")  # Find description
+    if description == "":
+        ## If the RSS FEED does not have a description tag, I'll open the link and find the Story Highlights of the article there.
+        ## All articles from CNN have that
+        newSource = urlopen(link).read()
+        matches = findall('<li class="el__storyhighlights__item el__storyhighlights--normal">(.*)</ul>', newSource)
+        for line in matches:
+            description = line[:line.index("</li>")]
+
+
     if "<![CDATA[" in description:  #  Same check as with title
         description = find(item, "<description><![CDATA[", "]]></description>")
     if "&lt;" in description and description.index("&") == 0:  ### CNN does not provide a Description to every article in their RSS feeds. The article is still there, but may not be a description
-        description = "No descripiton provided by CNN, please click the link below to read the full article. "  ## Tells the user that there are no description, and link to the full article
+        # description = "No descripiton provided by CNN, please click the link below to read the full article. "  ## Tells the user that there are no description, and link to the full article
+        ## If the RSS FEED does not have a description between description tags, I'll open the link and find the Story Highlights of the article there.
+        ## All articles from CNN have that
+        newSource = urlopen(link).read()
+        matches = findall('<li class="el__storyhighlights__item el__storyhighlights--normal">(.*)</ul>', newSource)
+        for line in matches:
+            description = line[:line.index("</li>")]
 
     elif "&lt;" in description: # Removes trash link from end of description
         stopPoint = description.index("&lt;")
         description = description[0 : stopPoint]
+    print "DESCRIPTION: ", description
 
-    link = find(item, "<link>", "</link>")  # Finds the link to the article
     publicationDate = find(item, "<pubDate>","</pubDate>")  ## finds the publication date
     picture = find(item, 'url="', '"')  # only URL tag is in images, so this will work
+
+    ## Checks the which link it should update
+    ## Exploits parts of static channel names
+    if "Travel" in sourceTitle:
+        travelLink = link
+    elif "Europe" in sourceTitle:
+        europeLink = link
+    elif "Football" in sourceTitle:
+        footballLink = link
+    elif "Homepage" in sourceTitle:
+        editionLink = link
+    elif "Technology" in sourceTitle:
+        technologyLink = link
+    else:
+        sportLink = link
 
     return [title, description, link, publicationDate, picture]  # returns information as a list
 
@@ -174,14 +230,6 @@ window.title("MEGA NEWS GENERATOR")  ## Sets the tilte
 window.configure(background="#1abaff")  ## Background color
 window.geometry("1000x450")  # Size of window
 
-sourceCNNSport = urlopen("http://rss.cnn.com/rss/edition_sport.rss")
-sourceCNNEurope = urlopen("http://rss.cnn.com/rss/edition_europe.rss")
-sourceCNNFootball = urlopen("http://rss.cnn.com/rss/edition_football.rss")
-sourceCNNEdition =  urlopen("http://rss.cnn.com/rss/edition.rss")
-sourceCNNTechnology = urlopen("http://rss.cnn.com/rss/edition_technology.rss")
-SourceCNNTravel = urlopen("http://rss.cnn.com/rss/edition_travel.rss")
-
-
 ## Command for print button
 ## The HTML file is created here and all writing is done in this method
 def printCommand():
@@ -192,40 +240,35 @@ def printCommand():
         init(file) ## Starts writing
         if checkSport.get() == True:  ## Checks if th checkbox is checked. This is the same check for every "if-sentence"
             text.insert(END, "Printing Sport News\n")  ## Shows progress to user
-            # sourceCNNSport = urlopen("http://rss.cnn.com/rss/edition_sport.rss").read()  ## If the chechbox is checked it will find news and downnload them
-            sport = sourceCNNSport.read()
-            writeNewsArticle(sport, "Sport", file)  ## Then write the news to the html file
+            sourceCNNSport = urlopen("http://rss.cnn.com/rss/edition_sport.rss").read()  ## If the chechbox is checked it will find news and downnload them
+            writeNewsArticle(sourceCNNSport, "Sport", file)  ## Then write the news to the html file
+
         ## Se comments over, each check does the same
         ## Important to check every box, that is why there is only IF and not elif else
         if checkEurope.get() == True:
             text.insert(END, "Printing Europe News\n")
-            # sourceCNNEurope = urlopen("http://rss.cnn.com/rss/edition_europe.rss").read()
-            europe = sourceCNNEurope.read()
-            writeNewsArticle(europe, "Europe", file)
+            sourceCNNEurope = urlopen("http://rss.cnn.com/rss/edition_europe.rss").read()
+            writeNewsArticle(sourceCNNEurope, "Europe", file)
 
         if checkFootball.get() == True:
             text.insert(END, "Printing Football News\n")
-            # sourceCNNFootball = urlopen("http://rss.cnn.com/rss/edition_football.rss").read()
-            football = sourceCNNFootball.read()
-            writeNewsArticle(football, "Football", file)
+            sourceCNNFootball = urlopen("http://rss.cnn.com/rss/edition_football.rss").read()
+            writeNewsArticle(sourceCNNFootball, "Football", file)
 
         if checkNews.get() == True:
             text.insert(END, "Printing Top News News\n")
-            # sourceCNNEdition = urlopen("http://rss.cnn.com/rss/edition.rss").read()
-            edition = sourceCNNEdition.read()
-            writeNewsArticle(edition, "Top News", file)
+            sourceCNNEdition = urlopen("http://rss.cnn.com/rss/edition.rss").read()
+            writeNewsArticle(sourceCNNEdition, "Top News", file)
 
         if checkTech.get() == True:
             text.insert(END, "Printing Technology News\n")
-            # sourceCNNTechnology = urlopen("http://rss.cnn.com/rss/edition_technology.rss").read()
-            technology = sourceCNNTechnology.read()
-            writeNewsArticle(technology, "Technology", file)
+            sourceCNNTechnology = urlopen("http://rss.cnn.com/rss/edition_technology.rss").read()
+            writeNewsArticle(sourceCNNTechnology, "Technology", file)
 
         if checkTravel.get() == True:
             text.insert(END, "Printing Travel News\n")
-            # sourceCNNTravel = urlopen("http://rss.cnn.com/rss/edition_travel.rss").read()
-            travel = SourceCNNTravel.read()
-            writeNewsArticle(travel, "Travel", file)
+            sourceCNNTravel = urlopen("http://rss.cnn.com/rss/edition_travel.rss").read()
+            writeNewsArticle(sourceCNNTravel, "Travel", file)
 
         ## Ends the HTML file
         text.insert(END, "Done!\n")
@@ -245,38 +288,28 @@ def recordCommand():
     if count_rows > 0:  ## checks it table is empty
         database.execute("DELETE FROM Recent_Downloads;")  ## if it is not empty, I'll empty it
 
-    if checkSport.get() == True:  ## Checks if th checkbox is checked. This is the same check for every "if-sentence"
-        sport = urlopen("http://rss.cnn.com/rss/edition_sport.rss").read()  ## If the chechbox is checked it will find news and downnload them
-        article = findNewsArticle(sport)  ## Will be a list with all information from sport article
-        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  + "' , " + "'" + article[2] + "')")  ## inserts data into database (dateTime, urlToArticle)
 
+    if checkSport.get() == True:  ## Checks if the checkbox is checked. This is the same check for every "if-sentence"
+        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  + "' , " + "'" + sportLink + "')")  ## inserts data into database (dateTime, urlToArticle)
 
     ## Se comments over, each check does the same
     ## Important to check every box, that is why there is only IF and not elif else
     if checkEurope.get() == True:
-        europe = urlopen("http://rss.cnn.com/rss/edition_europe.rss").read()
-        article = findNewsArticle(europe)
-        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + article[2] + "')")
+        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + europeLink + "')")
 
     if checkFootball.get() == True:
-        football = urlopen("http://rss.cnn.com/rss/edition_football.rss").read()
-        article = findNewsArticle(football)
-        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  + "'," + "'" + article[2] + "')")
+        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  + "'," + "'" + footballLink + "')")
 
     if checkNews.get() == True: 
-        edition = urlopen("http://rss.cnn.com/rss/edition.rss").read()
-        article = findNewsArticle(edition)
-        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + article[2] + "')")
+        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + editionLink + "')")
 
     if checkTech.get() == True:
-        technology = urlopen("http://rss.cnn.com/rss/edition_technology.rss").read()
-        article = findNewsArticle(technology)
-        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + article[2] + "')")
+        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + technologyLink + "')")
 
     if checkTravel.get() == True:
-        travel = urlopen("http://rss.cnn.com/rss/edition_travel.rss").read()
-        article = findNewsArticle(travel)
-        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + article[2] + "')")
+        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + travelLink + "')")
+
+    text.insert(END, "News paper saved to database \n")
 
     print "SUCCESS"
     connection.commit()
@@ -328,6 +361,10 @@ buttonRecord.grid(pady=marginSize, row = 3, column = 0)
 
 # Starts the program
 window.mainloop()
+
+## Closes the database connection
+## By closing it here, you can do more then one "print" each time you run the program
+
 database.close()
 connection.close()
 
