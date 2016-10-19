@@ -96,7 +96,9 @@ file_name = 'publication.html'
 connection = connect(database="internet_activity.db")
 database = connection.cursor()
 
+##### GLOBALS #####
 date_time_now = "" ## Init as an empty string. Have to do this so the database can write
+checkIfPrinted = False  ## Uses this to check if any news are printed
 
 ## Storing the links for the database localy
 ## This is to avoid reading the webpage two times
@@ -106,6 +108,8 @@ footballLink =""
 europeLink =""
 technologyLink =""
 travelLink =""
+
+##### GLOBALS END ######
 
 
 def init(file):
@@ -184,7 +188,6 @@ def findNewsArticle(source):
     elif "&lt;" in description: # Removes trash link from end of description
         stopPoint = description.index("&lt;")
         description = description[0 : stopPoint]
-    print "DESCRIPTION: ", description
 
     publicationDate = find(item, "<pubDate>","</pubDate>")  ## finds the publication date
     picture = find(item, 'url="', '"')  # only URL tag is in images, so this will work
@@ -233,6 +236,7 @@ window.geometry("1000x450")  # Size of window
 ## Command for print button
 ## The HTML file is created here and all writing is done in this method
 def printCommand():
+    global checkIfPrinted
     #  To open the file this way makes it easy, it will handle file closing by itself.
     #  This will also empty the HTML file for every time some clicks the print button, so the page will not load the masthead and the same news every time
     with open(file_name, "w") as file:
@@ -242,6 +246,7 @@ def printCommand():
             text.insert(END, "Printing Sport News\n")  ## Shows progress to user
             sourceCNNSport = urlopen("http://rss.cnn.com/rss/edition_sport.rss").read()  ## If the chechbox is checked it will find news and downnload them
             writeNewsArticle(sourceCNNSport, "Sport", file)  ## Then write the news to the html file
+            checkIfPrinted = True
 
         ## Se comments over, each check does the same
         ## Important to check every box, that is why there is only IF and not elif else
@@ -249,26 +254,35 @@ def printCommand():
             text.insert(END, "Printing Europe News\n")
             sourceCNNEurope = urlopen("http://rss.cnn.com/rss/edition_europe.rss").read()
             writeNewsArticle(sourceCNNEurope, "Europe", file)
+            checkIfPrinted = True
+
 
         if checkFootball.get() == True:
             text.insert(END, "Printing Football News\n")
             sourceCNNFootball = urlopen("http://rss.cnn.com/rss/edition_football.rss").read()
             writeNewsArticle(sourceCNNFootball, "Football", file)
+            checkIfPrinted = True
+
 
         if checkNews.get() == True:
             text.insert(END, "Printing Top News News\n")
             sourceCNNEdition = urlopen("http://rss.cnn.com/rss/edition.rss").read()
             writeNewsArticle(sourceCNNEdition, "Top News", file)
+            checkIfPrinted = True
+
 
         if checkTech.get() == True:
             text.insert(END, "Printing Technology News\n")
             sourceCNNTechnology = urlopen("http://rss.cnn.com/rss/edition_technology.rss").read()
             writeNewsArticle(sourceCNNTechnology, "Technology", file)
+            checkIfPrinted = True
+
 
         if checkTravel.get() == True:
             text.insert(END, "Printing Travel News\n")
             sourceCNNTravel = urlopen("http://rss.cnn.com/rss/edition_travel.rss").read()
             writeNewsArticle(sourceCNNTravel, "Travel", file)
+            checkIfPrinted = True
 
         ## Ends the HTML file
         text.insert(END, "Done!\n")
@@ -284,35 +298,39 @@ def launchCommand():
 ## This method is invoked when the launch button is pressed
 ## This method writes content to the database
 def recordCommand():
-    count_rows = database.execute("SELECT COUNT(*) FROM Recent_Downloads").fetchone()[0]  ## Counts rows in table
-    if count_rows > 0:  ## checks it table is empty
-        database.execute("DELETE FROM Recent_Downloads;")  ## if it is not empty, I'll empty it
+    if checkIfPrinted:
+        count_rows = database.execute("SELECT COUNT(*) FROM Recent_Downloads").fetchone()[0]  ## Counts rows in table
+        if count_rows > 0:  ## checks it table is empty
+            database.execute("DELETE FROM Recent_Downloads;")  ## if it is not empty, I'll empty it
 
 
-    if checkSport.get() == True:  ## Checks if the checkbox is checked. This is the same check for every "if-sentence"
-        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  + "' , " + "'" + sportLink + "')")  ## inserts data into database (dateTime, urlToArticle)
+        if checkSport.get() == True:  ## Checks if the checkbox is checked. This is the same check for every "if-sentence"
+            database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  + "' , " + "'" + sportLink + "')")  ## inserts data into database (dateTime, urlToArticle)
 
-    ## Se comments over, each check does the same
-    ## Important to check every box, that is why there is only IF and not elif else
-    if checkEurope.get() == True:
-        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + europeLink + "')")
+        ## Se comments over, each check does the same
+        ## Important to check every box, that is why there is only IF and not elif else
+        if checkEurope.get() == True:
+            database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + europeLink + "')")
 
-    if checkFootball.get() == True:
-        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  + "'," + "'" + footballLink + "')")
+        if checkFootball.get() == True:
+            database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  + "'," + "'" + footballLink + "')")
 
-    if checkNews.get() == True: 
-        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + editionLink + "')")
+        if checkNews.get() == True:
+            database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + editionLink + "')")
 
-    if checkTech.get() == True:
-        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + technologyLink + "')")
+        if checkTech.get() == True:
+            database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + technologyLink + "')")
 
-    if checkTravel.get() == True:
-        database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + travelLink + "')")
+        if checkTravel.get() == True:
+            database.execute("INSERT INTO Recent_Downloads VALUES ('" + date_time_now  +"'," + "'" + travelLink + "')")
 
-    text.insert(END, "News paper saved to database \n")
+        text.insert(END, "News paper saved to database \n")
 
-    print "SUCCESS"
-    connection.commit()
+        # print "SUCCESS"
+        connection.commit()
+    else:
+        text.insert(END, "YOU HAVE NOT SELECTED ANY NEW TO SAVE \n")
+        text.insert(END, "PLEASE CHECK SOME OF THE BOXES ON THE RIGHT SIDE \n")
 
 
 # To check checkbutton state
