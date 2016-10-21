@@ -113,30 +113,44 @@ travelLink =""
 
 
 ### Sources ###
+## By putting everything in functions, it will read an updated version every time you
+## you print. This allows users to let the program run, and when they come back articles will be updated it they hit
+def GetCnnSport():
+    sourceCNNSport = urlopen("http://rss.cnn.com/rss/edition_sport.rss") ## If the chechbox is checked it will find news and downnload them
+    CNNSport = sourceCNNSport.read()  ## If the chechbox is checked it will find news and downnload them
+    sourceCNNSport.close()
+    return CNNSport
 
-sourceCNNSport = urlopen("http://rss.cnn.com/rss/edition_sport.rss") ## If the chechbox is checked it will find news and downnload them
-CNNSport = sourceCNNSport.read()  ## If the chechbox is checked it will find news and downnload them
-sourceCNNSport.close()
 
-sourceCNNEurope = urlopen("http://rss.cnn.com/rss/edition_europe.rss")
-CNNEurope = sourceCNNEurope.read()
-sourceCNNEurope.close()
+def GetCnnEurope():
+    sourceCNNEurope = urlopen("http://rss.cnn.com/rss/edition_europe.rss")
+    CNNEurope = sourceCNNEurope.read()
+    sourceCNNEurope.close()
+    return CNNEurope
 
-sourceCNNFootball = urlopen("http://rss.cnn.com/rss/edition_football.rss")
-CNNFootball = sourceCNNFootball.read()
-sourceCNNFootball.close()
+def GetCnnFootball():
+    sourceCNNFootball = urlopen("http://rss.cnn.com/rss/edition_football.rss")
+    CNNFootball = sourceCNNFootball.read()
+    sourceCNNFootball.close()
+    return CNNFootball
 
-sourceCNNEdition = urlopen("http://rss.cnn.com/rss/edition.rss")
-CNNEdition = sourceCNNEdition.read()
-sourceCNNEdition.close()
+def GetCnnEdition():
+    sourceCNNEdition = urlopen("http://rss.cnn.com/rss/edition.rss")
+    CNNEdition = sourceCNNEdition.read()
+    sourceCNNEdition.close()
+    return CNNEdition
 
-sourceCNNTechnology = urlopen("http://rss.cnn.com/rss/edition_technology.rss")
-CNNTechnology = sourceCNNTechnology.read()
-sourceCNNTechnology.close()
+def GetCnnTechnology():
+    sourceCNNTechnology = urlopen("http://rss.cnn.com/rss/edition_technology.rss")
+    CNNTechnology = sourceCNNTechnology.read()
+    sourceCNNTechnology.close()
+    return CNNTechnology
 
-sourceCNNTravel = urlopen("http://rss.cnn.com/rss/edition_travel.rss")
-CNNTravel = sourceCNNTravel.read()
-sourceCNNTravel.close()
+def GetCnnTravel():
+    sourceCNNTravel = urlopen("http://rss.cnn.com/rss/edition_travel.rss")
+    CNNTravel = sourceCNNTravel.read()
+    sourceCNNTravel.close()
+    return CNNTravel
 
 
 ### Sources end ###
@@ -279,47 +293,44 @@ window.geometry("1000x450")  # Size of window
 ## The HTML file is created here and all writing is done in this method
 def printCommand():
     global checkIfPrinted
-    #  To open the file this way makes it easy, it will handle file closing by itself.
-    #  This will also empty the HTML file for every time some clicks the print button, so the page will not load the masthead and the same news every time
-    checkIfPrinted = False
-    with open(file_name, "w") as file:
-        text.delete('1.0', END)  ## Empties the Text field for every time you print
-        text.insert(END, "\nPrinting Masthead\n")  ## Progress show to user
+    checkIfPrinted = False  ## Boolean to check if anything is printed. This is to validate, so users cannot push empty
+    text.delete("1.0", END) ## Empties text field for every print
+    with open("publication.html", "w") as file:
         init(file) ## Starts writing
         if checkSport.get() == True:  ## Checks if th checkbox is checked. This is the same check for every "if-sentence"
             text.insert(END, "Printing Sport News\n")  ## Shows progress to user
-            writeNewsArticle(CNNSport, "Sport", file)  ## Then write the news to the html file, CNN SPORT is defind at the top
+            writeNewsArticle(GetCnnSport(), "Sport", file)  ## Then write the news to the html file, CNN SPORT is defind at the top
             checkIfPrinted = True
 
         ## Se comments over, each check does the same
         ## Important to check every box, that is why there is only IF and not elif else
         if checkEurope.get() == True:
             text.insert(END, "Printing Europe News\n")
-            writeNewsArticle(CNNEurope, "Europe", file)
+            writeNewsArticle(GetCnnEurope(), "Europe", file)
             checkIfPrinted = True
 
 
         if checkFootball.get() == True:
             text.insert(END, "Printing Football News\n")
-            writeNewsArticle(CNNFootball, "Football", file)
+            writeNewsArticle(GetCnnFootball(), "Football", file)
             checkIfPrinted = True
 
 
         if checkNews.get() == True:
             text.insert(END, "Printing Top News News\n")
-            writeNewsArticle(CNNEdition, "Top News", file)
+            writeNewsArticle(GetCnnEdition(), "Top News", file)
             checkIfPrinted = True
 
 
         if checkTech.get() == True:
             text.insert(END, "Printing Technology News\n")
-            writeNewsArticle(CNNTechnology, "Technology", file)
+            writeNewsArticle(GetCnnTechnology(), "Technology", file)
             checkIfPrinted = True
 
 
         if checkTravel.get() == True:
             text.insert(END, "Printing Travel News\n")
-            writeNewsArticle(CNNTravel, "Travel", file)
+            writeNewsArticle(GetCnnTravel(), "Travel", file)
             checkIfPrinted = True
 
         ## Ends the HTML file
@@ -329,6 +340,7 @@ def printCommand():
 
 ## This method is invoked when the launch button is pressed
 ## Opens the the HTML file in browser
+## NB: Works on Linux and Windows, NOT tested for Mac
 def launchCommand():
     url = "publication.html"
     webopen(url, new = 2)
